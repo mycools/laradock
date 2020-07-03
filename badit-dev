@@ -1,0 +1,27 @@
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNU1UQXdPREV4TVRBeE1Wb1hEVEk1TVRBd05URXhNVEF4TVZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBUGs4CjBCTEZZT081M2RBYm5jaHhkNGlmZVZDL3dycDFtOHJZZGhKSGNUclFJZTM2aWpwanFFcE5jWGJVeTAxSkZoSXoKR3dqUzhTNEVYLzNPQXJpdXBwelRRZktGWDBtU1Mwa0d6cUFZK3h5QzRaRVh2MUxPWitIaUw3QTJjb1Q3bExjNgo5RTJiRlBORzRTNFlla2tQZUViZDh1THVEM250MXR0cDVzYlVQMEJJS21BU0tZTFFVaE1zWHBPZ24wZkN0Y0EwCnMwR3l3TU9yNXhVYmp4dmZnOHhzaUlMMzFWSUlIcWRwWkY3OHRzcnIrZklZUUxCVGJQVVVWdkRTejNVOWZJRnoKRHRzbGRzelRoak9ILzFHV2Z4MWkxa0ZQT1NPZnFNaFk0ci82Ykh2bEtJVjFmRjIwTzdYVXFJWVVVTXpFbVVHWQp0c2M0eS9LOWxKTmRFb0JJdU1VQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFOOHhTZ1A3cytCUWM1UXpyWkJVZGtBTnhPY1AKeHRGQTZadnhxUWtZV2JHU2hnWDAxTDYySFEzUHB1Wk1rcjVieXlya3hzcGlBQmMvemtHUlRNUW5jbk8rRjl3MQpFeHZwbEMyWmtLVXBHaDh3UGJaS0xIZ0hUZFI2NEsxMnB3MFdsR1ZiQ2pqNDFQd1BvZWtzZ2dyQmJMOUJGdlM2CjZCajVIWGx6c1JqaVhiNm9WM0NlbmFlcG54UUhrdnRCYUxjaHBBK3V3N0gxZlV3MW5HRHNTdXVJc1Q0MzJXdXUKQnF5Wlh2YSttdVBMVkRkaGExRVI4T0RuQmYzejFxMTdWdkVuV29BWDZZdU9vNGNUeUlZZ2g1dzUzUlNOenRTQwpPSGpWaFdiV2tzV3VXaHBuczFEbitaY2NhU0lHK2ZERnZkTkMydk0vQTZ3bXpaSEVTamlHU3Y4ZlJFND0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    server: https://3A99D92D48B8BC65009704A5247E5F3E.yl4.ap-southeast-1.eks.amazonaws.com
+  name: arn:aws:eks:ap-southeast-1:411287337487:cluster/badit-sandbox
+contexts:
+- context:
+    cluster: arn:aws:eks:ap-southeast-1:411287337487:cluster/badit-sandbox
+    user: arn:aws:eks:ap-southeast-1:411287337487:cluster/badit-sandbox
+  name: arn:aws:eks:ap-southeast-1:411287337487:cluster/badit-sandbox
+current-context: arn:aws:eks:ap-southeast-1:411287337487:cluster/badit-sandbox
+kind: Config
+preferences: {}
+users:
+- name: arn:aws:eks:ap-southeast-1:411287337487:cluster/badit-sandbox
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      args:
+      - --region
+      - ap-southeast-1
+      - eks
+      - get-token
+      - --cluster-name
+      - badit-sandbox
+      command: aws

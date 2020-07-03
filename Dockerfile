@@ -61,7 +61,7 @@ RUN docker-php-ext-install \
     zip
 RUN docker-php-ext-install mysqli
 
-RUN apk --no-cache add php7-dev php7-fileinfo autoconf automake libtool m4
+RUN apk --no-cache add php7-dev php7-xml php7-fileinfo autoconf automake libtool m4
 RUN docker-php-ext-configure fileinfo
 RUN docker-php-ext-install fileinfo
 # Switch to use a non-root user from here on
