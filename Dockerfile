@@ -1,170 +1,81 @@
-  
-FROM composer:1.6.5 as build
+FROM alpine:edge
+FROM composer:1.6.5 as composer
+LABEL Maintainer="Jarak Kritkiattisak <jarak.krit@gmail.com>" \
+      Description="Lightweight container with Nginx 1.18 & PHP-FPM 7.2 based on Alpine Linux."
 
-WORKDIR /app
+ADD https://dl.bintray.com/php-alpine/key/php-alpine.rsa.pub /etc/apk/keys/php-alpine.rsa.pub
 
+RUN apk --update add ca-certificates && \
+    apk upgrade 
+    # echo "https://dl.bintray.com/php-alpine/v3.11/php-7.4" >> /etc/apk/repositories
 
-FROM php:7.4-apache as php_base
+# Install packages and remove default server definition
+RUN apk --no-cache add php7 php7-cli php7-fpm php7-opcache php7-mysqli php7-json php7-openssl php7-curl \
+    php7-zlib php7-xml php7-phar php7-intl php7-dom php7-xmlreader php7-ctype php7-session \
+    php7-mbstring php7-gd nginx supervisor curl && \
+    rm /etc/nginx/conf.d/default.conf
+RUN apk add --no-cache php7-pear php7-dev autoconf gcc musl-dev make zlib zlib-dev
+# RUN pecl install redis \
+#     && pecl install memcache \
+#     && docker-php-ext-enable redis
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+COPY --from=composer /usr/bin/composer /usr/bin/composer
+
+# Run composer install to install the dependencies
+# RUN composer install --optimize-autoloader --no-interaction --no-progress
+
+# Configure nginx
+COPY config/nginx.conf /etc/nginx/nginx.conf
+
+# Configure PHP-FPM
+COPY config/fpm-pool.conf /etc/php7/php-fpm.d/www.conf
+COPY config/php.ini /etc/php7/conf.d/custom.ini
+
+# Configure supervisord
+COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Setup document root
+RUN mkdir -p /var/www/html
+
+# Make sure files/folders needed by the processes are accessable when they run under the nobody user
+RUN chown -R nobody.nobody /var/www/html && \
+  chown -R nobody.nobody /run && \
+  chown -R nobody.nobody /var/lib/nginx && \
+  chown -R nobody.nobody /var/log/nginx
+RUN apk --no-cache  add libpng-dev \
+    imagemagick \
+    libc-dev \
     libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    locales \
-    zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
-    unzip \
-    git \
-    curl \
-    imagemagick
+    libzip-dev  \
+    mariadb-client \
+    php7-pdo \
+    php7-pdo_mysql \
+    php7-tokenizer
+RUN docker-php-ext-configure gd
+RUN docker-php-ext-install \
+    bcmath \
+    calendar \
+    exif \
+    gd \
+    pdo_mysql \
+    zip
+RUN docker-php-ext-install mysqli
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apk --no-cache add libmagic-dev
 
-# Install extensions
-RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl
-RUN docker-php-ext-configure gd --with-gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ --with-png-dir=/usr/include/
-RUN docker-php-ext-install gd
-RUN pecl install redis \
-    && pecl install xdebug \
-    && pecl install memcache \
-    && docker-php-ext-enable redis xdebug
-FROM build
-RUN which composer
+RUN docker-php-ext-install install Fileinfo
+# Switch to use a non-root user from here on
+USER nobody
 
-FROM php_base
-WORKDIR /app
-COPY --from=build /usr/bin/composer /usr/bin/composer
+# Add application
+WORKDIR /var/www/html
+COPY --chown=nobody src/ /var/www/html/
 
-ARG APP_NAME=Laravel
-ARG APP_ENV=local
-ARG APP_KEY
-ARG APP_DEBUG=true
-ARG APP_URL=http://localhost
+# Expose the port nginx is reachable on
+EXPOSE 3000
 
-ARG LOG_CHANNEL=stack
+# Let supervisord start nginx & php-fpm
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
-ARG DB_CONNECTION=mysql
-ARG DB_HOST
-ARG DB_PORT=3306
-ARG DB_DATABASE
-ARG DB_USERNAME
-ARG DB_PASSWORD
-
-ARG BROADCAST_DRIVER=log
-ARG CACHE_DRIVER=file
-ARG QUEUE_CONNECTION=sync
-ARG SESSION_DRIVER=file
-ARG SESSION_LIFETIME=120
-
-ARG REDIS_HOST=127.0.0.1
-ARG REDIS_PASSWORD=null
-ARG REDIS_PORT=6379
-
-ARG MAIL_DRIVER=smtp
-ARG MAIL_HOST=smtp.mailtrap.io
-ARG MAIL_PORT=2525
-ARG MAIL_USERNAME=null
-ARG MAIL_PASSWORD=null
-ARG MAIL_ENCRYPTION=null
-ARG MAIL_FROM_ADDRESS=null
-ARG MAIL_FROM_NAME=null
-
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_SECRET_ACCESS_KEY
-ARG AWS_DEFAULT_REGION=us-east-1
-ARG AWS_BUCKET
-
-ARG PUSHER_APP_ID
-ARG PUSHER_APP_KEY
-ARG PUSHER_APP_SECRET
-ARG PUSHER_APP_CLUSTER=mt1
-
-ARG MIX_PUSHER_APP_KEY
-ARG MIX_PUSHER_APP_CLUSTER
-
-ARG JWT_SECRET
-ARG JWT_TTL=3600
-
-ARG DO_SPACES_ENDPOINT
-ARG DO_SPACES_KEY
-ARG DO_SPACES_SECRET
-ARG DO_SPACES_REGION=sgp1
-ARG DO_SPACES_BUCKET
-ARG DO_SPACES_ROOTPATH
-ARG DO_SPACES_URL
-
-
-ARG FILESYSTEM_DRIVER
-
-
-ENV APP_NAME $APP_NAME
-ENV APP_ENV $APP_ENV
-ENV APP_KEY $APP_KEY
-ENV APP_DEBUG $APP_DEBUG
-ENV APP_URL $APP_URL
-
-ENV LOG_CHANNEL $LOG_CHANNEL
-
-ENV DB_CONNECTION $DB_CONNECTION
-ENV DB_HOST $DB_HOST
-ENV DB_PORT $DB_PORT
-ENV DB_DATABASE $DB_DATABASE
-ENV DB_USERNAME $DB_USERNAME
-ENV DB_PASSWORD $DB_PASSWORD
-
-ENV BROADCAST_DRIVER $BROADCAST_DRIVER
-ENV CACHE_DRIVER $CACHE_DRIVER
-ENV QUEUE_CONNECTION $QUEUE_CONNECTION
-ENV SESSION_DRIVER $SESSION_DRIVER
-ENV SESSION_LIFETIME $SESSION_LIFETIME
-
-ENV REDIS_HOST $REDIS_HOST
-ENV REDIS_PASSWORD $REDIS_PASSWORD
-ENV REDIS_PORT $REDIS_PORT
-
-ENV MAIL_DRIVER $MAIL_DRIVER
-ENV MAIL_HOST $MAIL_HOST
-ENV MAIL_PORT $MAIL_PORT
-ENV MAIL_USERNAME $MAIL_USERNAME
-ENV MAIL_PASSWORD $MAIL_PASSWORD
-ENV MAIL_ENCRYPTION $MAIL_ENCRYPTION
-ENV MAIL_FROM_ADDRESS $MAIL_FROM_ADDRESS
-ENV MAIL_FROM_NAME $MAIL_FROM_NAME
-
-ENV AWS_ACCESS_KEY_ID $AWS_ACCESS_KEY_ID
-ENV AWS_SECRET_ACCESS_KEY $AWS_SECRET_ACCESS_KEY
-ENV AWS_DEFAULT_REGION $AWS_DEFAULT_REGION
-ENV AWS_BUCKET $AWS_BUCKET
-
-ENV PUSHER_APP_ID $PUSHER_APP_ID
-ENV PUSHER_APP_KEY $PUSHER_APP_KEY
-ENV PUSHER_APP_SECRET $PUSHER_APP_SECRET
-ENV PUSHER_APP_CLUSTER $PUSHER_APP_CLUSTER
-
-ENV MIX_PUSHER_APP_KEY $MIX_PUSHER_APP_KEY
-ENV MIX_PUSHER_APP_CLUSTER $MIX_PUSHER_APP_CLUSTER
-
-ENV JWT_SECRET $JWT_SECRET
-ENV JWT_TTL $JWT_TTL
-
-ENV DO_SPACES_ENDPOINT $DO_SPACES_ENDPOINT
-ENV DO_SPACES_KEY $DO_SPACES_KEY
-ENV DO_SPACES_SECRET $DO_SPACES_SECRET
-ENV DO_SPACES_REGION $DO_SPACES_REGION
-ENV DO_SPACES_BUCKET $DO_SPACES_BUCKET
-ENV DO_SPACES_ROOTPATH $DO_SPACES_ROOTPATH
-ENV DO_SPACES_URL $DO_SPACES_URL
-
-
-ENV  FILESYSTEM_DRIVER $FILESYSTEM_DRIVER
-
-EXPOSE 80
-
-
-COPY vhost.conf /etc/apache2/sites-available/000-default.conf
-RUN chown -R www-data:www-data /app \
-    && a2enmod rewrite
+# Configure a healthcheck to validate that everything is up&running
+HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:9000/fpm-ping
